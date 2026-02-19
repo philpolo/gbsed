@@ -3,7 +3,7 @@
 ### Description
 
 ### Python setup
-All of our experiments were performed on an Ubuntu 24.04 system with a Python 3.12 environment.
+All of our experiments were performed on an Ubuntu 24.04 system with a Python 3.12 environment. The instructions below will help you create and configure your python environment.
 
 **Create a python environment**
 ```bash
