@@ -20,3 +20,4 @@ Once the environment activated, install the rest of the requirements from the re
 ```bash
 pip install -r requirements.txt
 ```
+### Usage
