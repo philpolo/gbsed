@@ -54,28 +54,28 @@ Raw Driving Images
 ## Project Structure
 
 ```
-Data/                            
-├── 1043/                        # 1043-syn dataset (see link below)
-gbsed-main/
-├── pipeline/
-│   └── pipeline.py              # Main GBSED class and end-to-end pipeline
-├── sgautoencoder/
-│   └── sg_autoencoder.py        # Scene graph encoder/decoder and semantic compression
-├── Communication/
-│   ├── e2emodel.py              # MIMO-OFDM end-to-end model (Sionna)
-│   ├── receiver.py              # Neural receiver for OFDM channel estimation
-│   └── weights/
-│       └── neural_rx_ofdm_mimo_cdl_final.h5
-├── learning/
-│   ├── rs2vec_training.py       # Training utilities for roadscene2vec
-│   ├── graph_profile_metrics.txt
-│   └── rs2vec_training_loss.csv
-├── utils/
-│   └── datasetGenerator.py      # sg2text caption generator
-├── Config/
-│   ├── pipeline_extraction.yaml # Config for scene graph extraction
-│   └── pipeline_learning.yaml   # Config for downstream learning
-└── requirements.txt
+├── Data/
+|       ├── 1043/                # 1043-syn dataset (see link below)
+├── gbsed-main/
+        ├── pipeline/
+        │   └── pipeline.py              # Main GBSED class and end-to-end pipeline
+        ├── sgautoencoder/
+        │   └── sg_autoencoder.py        # Scene graph encoder/decoder and semantic compression
+        ├── Communication/
+        │   ├── e2emodel.py              # MIMO-OFDM end-to-end model (Sionna)
+        │   ├── receiver.py              # Neural receiver for OFDM channel estimation
+        │   └── weights/
+        │       └── neural_rx_ofdm_mimo_cdl_final.h5
+        ├── learning/
+        │   ├── rs2vec_training.py       # Training utilities for roadscene2vec
+        │   ├── graph_profile_metrics.txt
+        │   └── rs2vec_training_loss.csv
+        ├── utils/
+        │   └── datasetGenerator.py      # sg2text caption generator
+        ├── Config/
+        │   ├── pipeline_extraction.yaml # Config for scene graph extraction
+        │   └── pipeline_learning.yaml   # Config for downstream learning
+        └── requirements.txt
 ```
 Note: The 1043-syn dataset can be found at: <https://ieee-dataport.org/documents/scenegraph-risk-assessment-dataset>
 
