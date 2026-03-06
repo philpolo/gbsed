@@ -141,7 +141,7 @@ Controls the downstream graph classification task. Key fields:
 
 ## Usage
 
-### Train the risk assessment model or the collision risk model
+### Train the risk assessment model
 
 From the `learning/` directory:
 
