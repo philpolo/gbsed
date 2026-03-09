@@ -2,13 +2,12 @@
 
 ## Overview
 
-GBSED is a semantic communication framework designed for task-oriented transmission of driving scene information between connected autonomous vehicles (CAVs). Rather than transmitting raw sensor data or images, GBSED encodes road scenes as compact **scene graphs** and transmits them efficiently over a simulated wireless channel. At the receiver, the scene graphs are decoded and used directly for downstream driving tasks such as collision prediction and sequence classification.
+GBSED is a semantic communication framework designed for **task-oriented transmission of driving scene information** between Connected Autonomous Vehicles (CAVs). Instead of transmitting raw sensor data or camera images, GBSED represents road environments as compact **scene graphs** that capture the semantic and spatial relationships between road entities.
 
-The framework bridges three domains:
+These graph-based representations are **semantically compressed and transmitted over a simulated wireless channel**, significantly reducing communication overhead compared to conventional data transmission approaches. The communication pipeline is integrated with a **MIMO–OFDM physical layer communication system operating under realistic 3GPP CDL channel conditions**, enabling the evaluation of semantic transmission performance in practical wireless environments.
 
-- **Scene understanding** — extracting structured graph representations of road scenes from images
-- **Semantic compression** — encoding scene graphs into compact binary representations, removing redundant relational information
-- **Physical layer simulation** — transmitting encoded data over a realistic MIMO-OFDM wireless channel (CDL model) using [Sionna](https://nvlabs.github.io/sionna/)
+At the receiver side, the transmitted scene graphs are **decoded and directly exploited for downstream driving tasks**, such as risk assessment and decision support, without requiring full reconstruction of the original raw data.
+
 
 ---
 
