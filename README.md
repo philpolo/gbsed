@@ -104,7 +104,7 @@ Key dependencies include:
 - `detectron2` — object detection for scene graph extraction from real images
 - `transformers`, `diffusers` — language model utilities for scene captioning
 - `wandb` — experiment tracking
-- '[roadscene2vec](https://github.com/AICPS/roadscene2vec)' library is used for scene graph extraction, dataset management, and graph-based learning. The library must be installed and available in the Python path. The `roadscene2vec` module is imported via `sys.path` manipulation in the source files; ensure it is located at the expected relative path (`../../roadscene2vec` or installed as a package).
+- [roadscene2vec](https://github.com/AICPS/roadscene2vec) library is used for scene graph extraction, dataset management, and graph-based learning. The library must be installed and available in the Python path. The `roadscene2vec` module is imported via `sys.path` manipulation in the source files; ensure it is located at the expected relative path (`../../roadscene2vec` or installed as a package).
 
 > **Note:** The full dependency list is large and GPU-specific (CUDA 12.6). It is strongly recommended to use a machine with a compatible NVIDIA GPU.
 
