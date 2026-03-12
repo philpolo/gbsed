@@ -201,7 +201,11 @@ After a full pipeline run, the following outputs are produced:
 
 ## Citation
 
-If you use this work, please cite the corresponding publication : https://arxiv.org/pdf/2603.08438
+If you use this work, please cite the corresponding publication:
+
+[Graph Based Semantic Encoder Decoder Framework for Task Oriented Communications in Connected Autonomous Vehicles](https://arxiv.org/pdf/2603.08438)
+
+```bibtex
 @article{ribouh2026graph,
   title={Graph Based Semantic Encoder Decoder Framework for Task Oriented Communications in Connected Autonomous Vehicles},
   author={Ribouh, Soheyb and Di Ngoma, Phil Polo Ditsia},
