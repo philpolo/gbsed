@@ -205,17 +205,16 @@ If you use this work, please cite the corresponding publication:
 
 [Graph Based Semantic Encoder Decoder Framework for Task Oriented Communications in Connected Autonomous Vehicles](https://arxiv.org/pdf/2603.08438)
 
-```bibtex
+**`bibtex
 @article{ribouh2026graph,
   title={Graph Based Semantic Encoder Decoder Framework for Task Oriented Communications in Connected Autonomous Vehicles},
   author={Ribouh, Soheyb and Di Ngoma, Phil Polo Ditsia},
   journal={arXiv preprint arXiv:2603.08438},
-  year={2026}
+  year={2026} 
 }
 
-'''
-
 ---
+
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
