@@ -215,6 +215,7 @@ If you use this work, please cite the corresponding publication:
 
 ---
 
+```markdown
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
