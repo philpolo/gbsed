@@ -129,6 +129,8 @@ class rs_trainer:
         trainer.build_model()
         trainer.learn()
         run.finish()
+        num_par = sum(p.numel() for p in trainer.model.parameters() if p.requires_grad)
+        print("Number of parameters : %d" %num_par)
         
     def evaluate(self): 
         """
