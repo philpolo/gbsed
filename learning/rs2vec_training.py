@@ -10,6 +10,7 @@ import os
 import sys
 import wandb
 import torch
+from pathlib import Path
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, f1_score, matthews_corrcoef,\
     precision_score, recall_score, roc_auc_score
@@ -42,9 +43,12 @@ class rs_trainer:
         self.learning_config = configuration(
             train_learning_config_filename,
             from_function=True
-        )            
-    
-    
+        )
+        model_save_parent = Path(self.learning_config.model_configuration['model_save_path']).parent
+        if not os.path.exists(model_save_parent):
+            os.makedirs(model_save_parent)
+            print('Created directory : %s' %model_save_parent)
+
     def load_datasets(self):
         """
         If the training and validation datasets exist, it loads them into memory;
