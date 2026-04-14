@@ -1,6 +1,9 @@
 # GBSED — Graph-Based Semantic Encoder–Decoder for Task-Oriented Communications in Connected Autonomous Vehicles
 
 ## Overview
+<div align="center">
+        <img src="images/Sys_model.png" alt="System architecture" width="75%">
+</div>
 
 GBSED is a semantic communication framework designed for **task-oriented transmission of driving scene information** between Connected Autonomous Vehicles (CAVs). Instead of transmitting raw sensor data or camera images, GBSED represents road environments as compact **scene graphs** that capture the semantic and spatial relationships between road entities.
 
