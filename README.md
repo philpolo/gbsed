@@ -72,8 +72,6 @@ Raw Driving Images
         │   ├── rs2vec_training.py       # Training utilities for roadscene2vec
         │   ├── graph_profile_metrics.txt
         │   └── rs2vec_training_loss.csv
-        ├── utils/
-        │   └── datasetGenerator.py      # sg2text caption generator
         ├── Config/
         │   ├── pipeline_extraction.yaml # Config for scene graph extraction
         │   └── pipeline_learning.yaml   # Config for downstream learning
