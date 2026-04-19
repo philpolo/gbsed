@@ -9,7 +9,7 @@ Created on Wed Apr 30 13:40:30 2025
 import sys
 import numpy as np
 
-sys.path.append("..")
+sys.path.append("../..")
 
 from roadscene2vec.scene_graph.nodes import Node
 from roadscene2vec.util.config_parser import configuration
@@ -180,6 +180,7 @@ class sg_autoencoder(object):
                 suffix = int(nodes[i].name.split("_")[-1])
                 feat_nodes_mat[i, -1] = suffix
         return labels, feat_nodes_mat, T
+    
     
     def decode(self, labels, feature_nodes, indices, comp_T):
         T = self.sem_decompression(comp_T, indices)
