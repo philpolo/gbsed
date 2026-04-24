@@ -10,12 +10,12 @@ import os
 import sys 
 import torch
 import argparse
-from pathlib import Path
 import numpy as np
 import pickle as pkl
 import pandas as pd
 import tensorflow as tf
 from tqdm import tqdm
+from pathlib import Path
 
 sys.path.append("..")
 sys.path.append("../..")
@@ -349,9 +349,10 @@ def main_parser():
             
 if __name__ == "__main__":
     args = main_parser()
-    extraction_config = configuration(args.extraction_filename, 
-                                      from_function=True)
-    correct_transmission, total_files = [], []
+    extraction_config = configuration(
+        args.extraction_filename, 
+        from_function=True
+    )
     output_parent = Path(args.output_file).parent
     if not os.path.exists(output_parent):
         os.makedirs(output_parent)
@@ -373,17 +374,22 @@ if __name__ == "__main__":
                                  "prediction":preds,  
                                  "ebno":[e for i in range(len(labels))]
                              })
-                        ), axis=0)
+                        ), 
+                        axis=0
+                    )
+                sem_fid_df = pd.concat(
+                    (
+                        sem_fid_df, 
+                         pd.DataFrame(
+                             {
+                                 "iteration":[i], 
+                                 "ebno" : [e], 
+                                 "correct_transmission":[correctly_transmitted], 
+                                 "total_files":[total_file_nb]
+                             }
+                        )
+                    ), 
+                    axis=0
+                )
                 df.to_csv(args.output_file, index=False)
-            sem_fid_df = pd.concat(
-                (sem_fid_df, 
-                 pd.DataFrame(
-                     {
-                         "iteration":[i], 
-                         "ebno" : [e], 
-                         "correct_transmission":[correctly_transmitted], 
-                         "total_files":[total_file_nb]
-                     }
-                )), axis=0
-            )
-            sem_fid_df.to_csv(args.sem_fid_file, index=False)
+                sem_fid_df.to_csv(args.sem_fid_file, index=False)
