@@ -15,6 +15,7 @@ import pickle as pkl
 import pandas as pd
 import tensorflow as tf
 from tqdm import tqdm
+from time import time
 from pathlib import Path
 
 sys.path.append("..")
@@ -33,7 +34,7 @@ sys.modules['util'] = roadscene2vec.util
 
 class GBSED:
     """
-    The complete pipeline, from extracting road scenes to risk assessment, including graph compression and decompression.
+    The complete pipeline, from extracting road scenes to the risk assessment, including graph compression and decompression.
     """
     def __init__(self, config:configuration, com_model_endpoint, batch_size:int=16):
         self.config = config
@@ -219,6 +220,100 @@ class GBSED:
         b = np.packbits(bits)
         float_array = np.frombuffer(b.tobytes(), np.float16)
         return float_array
+    
+    def _process_sg(self, sg):
+        """
+        _process_sg extracts the nodes labels, the features_node_matrix and the adjacency matrices tensor from the SceneGraph sg.
+
+        Parameters
+        ----------
+        sg : SceneGraph
+            The intermediate representation of a raod scene image.
+
+        Returns
+        -------
+        dict
+            All the relevant information extracted from the SceneGraph object sg.
+
+        """
+        labels, feat_nodes_mat, T = self.sg_ae.encode(sg)
+        comp_T, L = self.sg_ae.sem_compression(T)
+        to_serialize = self._format_storage(labels, feat_nodes_mat, L, comp_T)
+        input_bits = self._to_bits_array(to_serialize)
+        return {
+            "labels": labels, 
+            "feature_nodes_matrix":feat_nodes_mat, 
+            "compressed_Tensor":comp_T, 
+            "indexes":L, 
+            "input_bits":input_bits, 
+            "prepared_bits":self._prepare_bits_for_model(input_bits)
+        }
+    
+    def _sg_reconstruction(self, received_bits, initial_processed_sg):
+        """
+        _sg_reconstruction reconstructs SceneGraph object by proceeding the transmitted data. 
+        Compare the reconstructed SceneGraph to the initial SceneGraph to insure a consistant information transmission.
+
+        Parameters
+        ----------
+        received_bits : np.ndarray
+            The received bits after the data transmission.
+        initial_processed_sg : dict
+            The information about the initial SceneGraph.
+
+        Returns
+        -------
+        rec_sg : SceneGraph
+            The reconstructed SceneGraph from the received bits.
+
+        """
+        to_read = self._to_float_array(received_bits)
+        labels = initial_processed_sg['labels']
+        comp_T = initial_processed_sg['compressed_Tensor']
+        feat_nodes_mat = initial_processed_sg['feature_nodes_matrix']
+        L = initial_processed_sg['indexes']
+        try: 
+            rec_labels, rec_feature_nodes, rec_L, rec_comp_T = self._format_loading(to_read)
+            if np.allclose(comp_T, rec_comp_T) \
+                and np.allclose(labels, rec_labels) \
+                and np.allclose(feat_nodes_mat, rec_feature_nodes) \
+                and np.allclose(L, rec_L):
+                rec_sg = self.sg_ae.decode(rec_labels, rec_feature_nodes, rec_L, rec_comp_T)
+                return rec_sg
+        except Exception:
+            print("\nTruncated file", file=sys.stderr)
+
+    
+    def sg_transmission(self, sg):
+        """
+        sg_transmission simulates the data transmission of the processed SceneGraph object sg. 
+        Measures the transmission time and returns the reconstructed SceneGraph from the received data, and the transmission time.
+
+        Parameters
+        ----------
+        sg : SceneGraph
+            The SceneGraph to process and transmit.
+
+        Returns
+        -------
+        tuple
+            (The reconstructed SceneGraph, the transmission time).
+
+        """
+        initial_processed_sg = self._process_sg(sg)
+        start = time()
+        b, b_hat = self.model(
+            self.batch_size, 
+            ebno, 
+            initial_processed_sg['prepared_bits']
+        )
+        end = time()
+        received_bits = self._recover_original_bits(
+            b_hat, 
+            initial_processed_sg['input_bits'].size
+        ).cpu().numpy()
+        received_bits = np.asarray(received_bits, dtype=np.uint8)
+        return self._sg_reconstruction(received_bits, initial_processed_sg), (end - start)
         
     def e2e(self, ebno):
         path = self.config.location_data['input_path']
@@ -228,12 +323,15 @@ class GBSED:
                 os.mkdir(location)
         elif self.config.loading_type == "folder":
             location = path
+            
         scene_graphs = self.data.scene_graphs
         folder_names = self.data.folder_names
         sent_labels = self.data.labels
         received_scene_graphs, received_labels, received_folder_names = {}, {}, []
         correctly_transmitted, total_file_nb = 0, 0
         keys = list(scene_graphs.keys())
+        durations = []
+        
         p_bar = tqdm(range(len(keys)))
         for i in p_bar:
             key = keys[i]
@@ -250,48 +348,35 @@ class GBSED:
                 os.mkdir(received_folder)
             sequence = scene_graphs[key]
             received_scene_graphs[key] = {}
-            for seq_file_num in sequence.keys(): 
-                total_file_nb += 1
+            for seq_file_num in sequence.keys():
                 sg = sequence[seq_file_num]
-                labels, feat_nodes_mat, T = self.sg_ae.encode(sg)
-                comp_T, L = self.sg_ae.sem_compression(T)
-                to_serialize = self._format_storage(labels, feat_nodes_mat, L, comp_T)
+                rec_sg, duration = self.sg_transmission(sg)
                 sg.visualize(os.path.join(to_store_folder, str(seq_file_num) + ".png"))
-                input_bits = self._to_bits_array(to_serialize)
-                prepared_bits = self._prepare_bits_for_model(input_bits)
-                b, b_hat = self.model(self.batch_size, ebno, prepared_bits)
-                received_bits = self._recover_original_bits(b_hat, input_bits.size).cpu().numpy()
-                received_bits = np.asarray(received_bits, dtype=np.uint8)
-                to_read = self._to_float_array(received_bits)
-                # assert to_serialize.shape == to_read.shape, "%d, %d" %(key, seq_file_num)
-                try: 
-                    rec_labels, rec_feature_nodes, rec_L, rec_comp_T = self._format_loading(to_read)
-                    if np.allclose(comp_T, rec_comp_T) \
-                        and np.allclose(labels, rec_labels) \
-                        and np.allclose(feat_nodes_mat, rec_feature_nodes) \
-                        and np.allclose(L, rec_L):
-                        rec_sg = self.sg_ae.decode(rec_labels, rec_feature_nodes, rec_L, rec_comp_T)
-                        rec_sg.visualize(os.path.join(received_folder, str(seq_file_num) + ".png"))
-                        received_scene_graphs[key][seq_file_num] = rec_sg
-                        correctly_transmitted += 1
-                except Exception:
-                    print("\nTruncated file", file=sys.stderr)
-                    continue
+                if not rec_sg is None:
+                    received_scene_graphs[key][seq_file_num] = rec_sg
+                    rec_sg.visualize(os.path.join(received_folder, str(seq_file_num) + ".png"))
+                    correctly_transmitted += 1
+                durations.append(duration)
+            
+            total_file_nb += len(sequence)
+            
             if len(received_scene_graphs[key]) > 0:
                 received_labels[key] = sent_labels[key]
                 received_folder_names.append(folder_name)
             else:
-                received_scene_graphs.pop(key)     
+                received_scene_graphs.pop(key)   
+                
             scene_graph_dataset = SceneGraphDataset()
             scene_graph_dataset.scene_graphs = received_scene_graphs
             scene_graph_dataset.labels = received_labels
             scene_graph_dataset.folder_names = received_folder_names
             scene_graph_dataset.dataset_save_path = self.config.location_data['data_save_path']
             scene_graph_dataset.dataset_type = self.config.dataset_type
-        return  scene_graph_dataset, correctly_transmitted, total_file_nb
+            
+        return scene_graph_dataset, correctly_transmitted, total_file_nb, durations
     
-def main(learning_filename, pipe, ebno):    
-    sg_dataset, c_transmitted, total_file_nb = pipe.e2e(ebno)
+def main(learning_filename, pipe, ebno, time_file):    
+    sg_dataset, c_transmitted, total_file_nb, durations = pipe.e2e(ebno)
     if len(sg_dataset.scene_graphs) > 0 \
         and 1.0 in list(sg_dataset.labels.values()):
         sg_dataset.save()
@@ -304,6 +389,14 @@ def main(learning_filename, pipe, ebno):
         outputs, labels = ret_values[0], ret_values[1]
         preds = torch.argmax(outputs, dim=1).cpu().numpy()
         labels = labels.cpu().numpy()
+        df = pd.DataFrame({f"duration_{int(ebno)}":durations})
+        if not os.path.exists(time_file):
+            df.to_csv(time_file, index=False)
+        else: 
+            df1 = pd.read_csv(time_file)
+            df2 = pd.concat((df, df1), axis=1)
+            df2.to_csv(time_file, index=False)
+            
         return labels, preds, c_transmitted, total_file_nb
     
 
@@ -344,6 +437,12 @@ def main_parser():
         default="../../Data/Outputs/sem_fidelity.csv", 
         help="Path to save the semantic fidelity dataframe"
     )
+    parser.add_argument(
+        "--time_file", 
+        type=str, 
+        default="../../Data/Outputs/transfert_times.csv", 
+        help="Path to save the transfert times dataframe"
+    )
     return parser.parse_args()
         
             
@@ -362,7 +461,7 @@ if __name__ == "__main__":
     for e in np.linspace(0, 20, 11):
         ebno = tf.constant(e, tf.float32)
         for i in range(1):
-            main_return = main(args.learning_filename, pipe, ebno)
+            main_return = main(args.learning_filename, pipe, ebno, args.time_file)
             if not main_return is None: 
                 labels, preds, correctly_transmitted, total_file_nb = main_return
                 df = pd.concat(
