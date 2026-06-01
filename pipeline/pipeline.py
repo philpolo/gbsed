@@ -36,14 +36,19 @@ class GBSED:
     """
     The complete pipeline, from extracting road scenes to the risk assessment, including graph compression and decompression.
     """
-    def __init__(self, config:configuration, com_model_endpoint, batch_size:int=16):
+    def __init__(self, config:configuration, com_model_endpoint, 
+                 batch_size:int=16, ebno=tf.constant(20, tf.float32)):
         self.config = config
-        self.data = self.__load__()
+        self.data = self._load_()
         self.batch_size = batch_size
+        self.ebno = ebno
         self.sg_ae = sg_autoencoder(self.config)
-        self.__load_communicator__(com_model_endpoint)
+        self._load_communicator_(com_model_endpoint)
         
-    def __load_communicator__(self, endpoint:str):
+    def _set_ebno(self, ebno):
+        self.ebno = ebno
+        
+    def _load_communicator_(self, endpoint:str):
         """
         load the communicator endpoint""
 
@@ -67,7 +72,7 @@ class GBSED:
             self.model.neural_rx.weights[i].assign(w)
         
     
-    def __load__(self) -> SceneGraphDataset:
+    def _load_(self) -> SceneGraphDataset:
         """
         Extract scene graphs from the images folder and return the scenegraph dataset containing all the extracted scenes.
 
@@ -89,7 +94,7 @@ class GBSED:
             return sg_extraction_object.getDataSet()
         
         
-    def _format_storage(self, labels, feature_nodes, L, comp_T):
+    def _format_storage_(self, labels, feature_nodes, L, comp_T):
         """
         Reformat the given arguments into a 1D array-like for data transmission.
 
@@ -122,7 +127,7 @@ class GBSED:
         to_serialize = np.asarray(to_serialize, dtype=np.float16)
         return to_serialize
     
-    def _format_loading(self, to_read):
+    def _format_loading_(self, to_read):
         """
         From an 1D array, reads and returns the labels, features_nodes matrix, the selected indexes and the compressed adjacency matrix.
 
@@ -180,7 +185,7 @@ class GBSED:
         
         return labels, feature_nodes, L, comp_T
         
-    def _prepare_bits_for_model(self, input_bits_1d):
+    def _prepare_bits_for_model_(self, input_bits_1d):
         
         if not (isinstance(input_bits_1d, np.ndarray) and input_bits_1d.ndim == 1) and \
            not (isinstance(input_bits_1d, tf.Tensor) and input_bits_1d.shape.rank == 1):
@@ -206,24 +211,24 @@ class GBSED:
     
         return tf.constant(prepared_bits, dtype=tf.int32)
     
-    def _recover_original_bits(self, decoded_bits, original_length):
+    def _recover_original_bits_(self, decoded_bits, original_length):
         decoded_bits_flat = tf.reshape(decoded_bits, [-1])
         recovered_bits = decoded_bits_flat[:original_length]
         return recovered_bits
     
-    def _to_bits_array(self, np_array):
+    def _to_bits_array_(self, np_array):
         b = np_array.tobytes()
         bits = np.unpackbits(np.frombuffer(b, dtype=np.uint8))
         return bits
 
-    def _to_float_array(self, bits):
+    def _to_float_array_(self, bits):
         b = np.packbits(bits)
         float_array = np.frombuffer(b.tobytes(), np.float16)
         return float_array
     
-    def _process_sg(self, sg):
+    def _process_sg_(self, sg):
         """
-        _process_sg extracts the nodes labels, the features_node_matrix and the adjacency matrices tensor from the SceneGraph sg.
+        _process_sg_ extracts the nodes labels, the features_node_matrix and the adjacency matrices tensor from the SceneGraph sg.
 
         Parameters
         ----------
@@ -238,20 +243,20 @@ class GBSED:
         """
         labels, feat_nodes_mat, T = self.sg_ae.encode(sg)
         comp_T, L = self.sg_ae.sem_compression(T)
-        to_serialize = self._format_storage(labels, feat_nodes_mat, L, comp_T)
-        input_bits = self._to_bits_array(to_serialize)
+        to_serialize = self._format_storage_(labels, feat_nodes_mat, L, comp_T)
+        input_bits = self._to_bits_array_(to_serialize)
         return {
             "labels": labels, 
             "feature_nodes_matrix":feat_nodes_mat, 
             "compressed_Tensor":comp_T, 
             "indexes":L, 
             "input_bits":input_bits, 
-            "prepared_bits":self._prepare_bits_for_model(input_bits)
+            "prepared_bits":self._prepare_bits_for_model_(input_bits)
         }
     
-    def _sg_reconstruction(self, received_bits, initial_processed_sg):
+    def _sg_reconstruction_(self, received_bits, initial_processed_sg):
         """
-        _sg_reconstruction reconstructs SceneGraph object by proceeding the transmitted data. 
+        _sg_reconstruction_ reconstructs SceneGraph object by proceeding the transmitted data. 
         Compare the reconstructed SceneGraph to the initial SceneGraph to insure a consistant information transmission.
 
         Parameters
@@ -267,13 +272,13 @@ class GBSED:
             The reconstructed SceneGraph from the received bits.
 
         """
-        to_read = self._to_float_array(received_bits)
+        to_read = self._to_float_array_(received_bits)
         labels = initial_processed_sg['labels']
         comp_T = initial_processed_sg['compressed_Tensor']
         feat_nodes_mat = initial_processed_sg['feature_nodes_matrix']
         L = initial_processed_sg['indexes']
         try: 
-            rec_labels, rec_feature_nodes, rec_L, rec_comp_T = self._format_loading(to_read)
+            rec_labels, rec_feature_nodes, rec_L, rec_comp_T = self._format_loading_(to_read)
             if np.allclose(comp_T, rec_comp_T) \
                 and np.allclose(labels, rec_labels) \
                 and np.allclose(feat_nodes_mat, rec_feature_nodes) \
@@ -300,22 +305,22 @@ class GBSED:
             (The reconstructed SceneGraph, the transmission time).
 
         """
-        initial_processed_sg = self._process_sg(sg)
+        initial_processed_sg = self._process_sg_(sg)
         start = time()
         b, b_hat = self.model(
             self.batch_size, 
-            ebno, 
+            self.ebno, 
             initial_processed_sg['prepared_bits']
         )
         end = time()
-        received_bits = self._recover_original_bits(
+        received_bits = self._recover_original_bits_(
             b_hat, 
             initial_processed_sg['input_bits'].size
         ).cpu().numpy()
         received_bits = np.asarray(received_bits, dtype=np.uint8)
-        return self._sg_reconstruction(received_bits, initial_processed_sg), (end - start)
+        return self._sg_reconstruction_(received_bits, initial_processed_sg), (end - start)
         
-    def e2e(self, ebno):
+    def e2e(self):
         path = self.config.location_data['input_path']
         if self.config.loading_type == "pickle":
             location = self.data.dataset_path
@@ -375,8 +380,8 @@ class GBSED:
             
         return scene_graph_dataset, correctly_transmitted, total_file_nb, durations
     
-def main(learning_filename, pipe, ebno, time_file):    
-    sg_dataset, c_transmitted, total_file_nb, durations = pipe.e2e(ebno)
+def main(learning_filename, pipe, time_file):    
+    sg_dataset, c_transmitted, total_file_nb, durations = pipe.e2e()
     if len(sg_dataset.scene_graphs) > 0 \
         and 1.0 in list(sg_dataset.labels.values()):
         sg_dataset.save()
@@ -460,8 +465,9 @@ if __name__ == "__main__":
     pipe = GBSED(extraction_config, args.com_model_endpoint)
     for e in np.linspace(0, 20, 11):
         ebno = tf.constant(e, tf.float32)
+        pipe._set_ebno(ebno)
         for i in range(1):
-            main_return = main(args.learning_filename, pipe, ebno, args.time_file)
+            main_return = main(args.learning_filename, pipe, args.time_file)
             if not main_return is None: 
                 labels, preds, correctly_transmitted, total_file_nb = main_return
                 df = pd.concat(
