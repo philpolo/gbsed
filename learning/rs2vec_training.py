@@ -168,6 +168,7 @@ class rs_trainer:
         print("F1-score : %.3f" % f1)
         print("mcc : %.3f" % mcc)
         print("roc : %.3f" % roc)
+            
         
 def main_parser():
     parser = argparse.ArgumentParser(description="Train the risk assessment or the collision prediction model.")

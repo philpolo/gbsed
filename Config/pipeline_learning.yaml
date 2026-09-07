@@ -22,8 +22,8 @@ model_configuration:
   dropout: 0.1 #dropout probability
   device: 'cuda' #device to place training/testing data batches
   activation: 'relu'
-  model_load_path: '../../Models/1043_task_oriented_model.pt' #path to load pretrained model
-  model_save_path: '../../Models/1043_task_oriented_model.pt' #path to save trained model
+  model_load_path: '../checkpoints/1043_task_oriented_model.pt' #path to load pretrained model
+  model_save_path: '../checkpoints/1043_task_oriented_model.pt' #path to save trained model
    
 training_configuration:
   dataset_type: "scenegraph" #Options: real, scenegraph. scenegraph only option for graph based models
